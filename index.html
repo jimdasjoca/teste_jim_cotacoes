@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cotações USD</title>
+    <style>
+        body { font-family: Arial, sans-serif; text-align: center; padding: 20px; }
+        #grafico { width: 100%; max-width: 600px; height: 300px; border: 1px solid #ccc; margin: auto; position: relative; }
+        .linha { position: absolute; height: 2px; background: blue; transition: all 0.5s; }
+        .ponto { position: absolute; width: 8px; height: 8px; background: red; border-radius: 50%; transform: translate(-50%, -50%); }
+    </style>
+</head>
+<body>
+
+    <h1>Gráfico de Cotações</h1>
+
+    <label for="moeda">Escolha a moeda:</label>
+    <select id="moeda">
+        <option value="BRL">Real (BRL)</option>
+        <option value="EUR">Euro (EUR)</option>
+        <option value="JPY">Iene (JPY)</option>
+    </select>
+
+    <div id="grafico"></div>
+
+    <script>
+        async function carregarCotacoes(moeda) {
+            const response = await fetch("http://127.0.0.1:8000/cotacoes/");
+            const cotacoes = await response.json();
+
+            const dadosFiltrados = cotacoes
+                .filter(c => c.moeda === moeda)
+                .sort((a, b) => new Date(a.data) - new Date(b.data));
+
+            desenharGrafico(dadosFiltrados);
+        }
+
+        function desenharGrafico(cotacoes) {
+            const grafico = document.getElementById("grafico");
+            grafico.innerHTML = ""; // Limpa o gráfico
+
+            if (cotacoes.length === 0) {
+                grafico.innerHTML = "<p>Nenhum dado encontrado</p>";
+                return;
+            }
+
+            //tamanho do grafico
+            const largura = grafico.clientWidth;
+            const altura = grafico.clientHeight;
+            const maxValor = Math.max(...cotacoes.map(c => c.valor));
+            const minValor = Math.min(...cotacoes.map(c => c.valor));
+
+            cotacoes.forEach((cotacao, index) => {
+                const x = (index / (cotacoes.length - 1)) * largura;
+                const y = altura - ((cotacao.valor - minValor) / (maxValor - minValor)) * altura;
+
+                const ponto = document.createElement("div");
+                ponto.className = "ponto";
+                ponto.style.left = `${x}px`;
+                ponto.style.top = `${y}px`;
+
+                grafico.appendChild(ponto);
+
+                if (index > 0) {
+                    const linha = document.createElement("div");
+                    linha.className = "linha";
+                    linha.style.left = `${x}px`;
+                    linha.style.top = `${y}px`;
+                    linha.style.width = `${x - (largura / cotacoes.length)}px`;
+
+                    grafico.appendChild(linha);
+                }
+            });
+        }
+
+        document.getElementById("moeda").addEventListener("change", function () {
+            carregarCotacoes(this.value);
+        });
+
+        carregarCotacoes("BRL");
+    </script>
+
+</body>
+</html>
